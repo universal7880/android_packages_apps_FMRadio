@@ -22,15 +22,18 @@ cc_library_shared {
         default: [],
     }),
 
-    srcs: select(soong_config_variable("libfmjni", "vendor"), {
-        "qcom": [":libfmjni-qcom-srcs"],
-        "slsi": [":libfmjni-slsi-srcs"],
-        default: [
-            "fmr_core.cpp",
-            "fmr_err.cpp",
-            "libfm_jni.cpp",
-            "common.cpp",
-        ],
+    srcs: select(soong_config_variable("libfmjni", "external_srcs"), {
+        any @ sources: sources,
+        default: select(soong_config_variable("libfmjni", "vendor"), {
+            "qcom": [":libfmjni-qcom-srcs"],
+            "slsi": [":libfmjni-slsi-srcs"],
+            default: [
+                "fmr_core.cpp",
+                "fmr_err.cpp",
+                "libfm_jni.cpp",
+                "common.cpp",
+            ],
+        }),
     }),
 
     header_libs: [
@@ -41,12 +44,15 @@ cc_library_shared {
         default: [],
     }),
 
-    shared_libs: [
-        "libbase",
-        "libcutils",
-        "libdl",
-        "liblog",
-        "libmedia",
-        "libnativehelper",
-    ],
+    shared_libs: select(soong_config_variable("libfmjni", "external_shared_libs"), {
+        any @ libraries: libraries,
+        default: [
+            "libbase",
+            "libcutils",
+            "libdl",
+            "liblog",
+            "libmedia",
+            "libnativehelper",
+        ],
+    }),
 }
