@@ -17,7 +17,7 @@
 android_app {
     name: "FMRadio",
 
-    srcs: ["src/**/*.java"],
+    srcs: ["src/**/*.java", "platform/**/*.java"],
 
     certificate: "platform",
     platform_apis: true,
@@ -43,4 +43,37 @@ prebuilt_etc {
 
     src: "privapp_whitelist_com.android.fmradio.xml",
     relative_install_path: "permissions",
+}
+
+android_app {
+    name: "FMRadio.vendor",
+    enabled: select(soong_config_variable("fmradio", "vendor"), {
+        true: true,
+        default: false,
+    }),
+    vendor: true,
+    privileged: true,
+    manifest: "vendor/AndroidManifest.xml",
+    package_name: "org.lineageos.fmradio.vendor",
+    rename_resources_package: false,
+    sdk_version: "current",
+    min_sdk_version: "30",
+    target_sdk_version: "30",
+
+    srcs: [
+        "src/**/*.java",
+        "vendor/java/**/*.java",
+    ],
+    jni_libs: select(soong_config_variable("fmradio", "vendor_jni"), {
+        any @ library: [library],
+        default: [],
+    }),
+    static_libs: ["androidx.cardview_cardview"],
+
+    // JNI_OnLoad registers methods that Java callers may never invoke.
+    optimize: {
+        enabled: false,
+    },
+
+    aaptflags: ["--auto-add-overlay"],
 }

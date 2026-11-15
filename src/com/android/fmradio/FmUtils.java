@@ -22,7 +22,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.os.Environment;
 import android.os.StatFs;
-import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View.MeasureSpec;
@@ -291,6 +290,6 @@ public class FmUtils {
     }
 
     public static boolean hasBuiltInFmAntennaSupport() {
-        return SystemProperties.get("ro.vendor.builtin_fm_antenna_support").equals("1");
+        return FmAudio.hasBuiltInAntenna();
     }
 }

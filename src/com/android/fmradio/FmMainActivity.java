@@ -17,8 +17,6 @@
 package com.android.fmradio;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
 
 import android.Manifest;
 import android.app.Activity;
@@ -756,6 +754,8 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         mMenuItemHeadset = menu.findItem(R.id.fm_headset);
         mMenuItemStartRecord = menu.findItem(R.id.fm_start_record);
         mMenuItemRecordList = menu.findItem(R.id.fm_record_list);
+        mMenuItemStartRecord.setVisible(FmAudio.RECORDING_SUPPORTED);
+        mMenuItemRecordList.setVisible(FmAudio.RECORDING_SUPPORTED);
         return true;
     }
 
@@ -945,18 +945,11 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         refreshPopupMenuItem(false);
         refreshPlayButton(false);
 
-        int recordAudioPermission = checkSelfPermission(Manifest.permission.RECORD_AUDIO);
-        List<String> mPermissionStrings = new ArrayList<String>();
-        boolean mRequest = false;
-
-        if (recordAudioPermission != PackageManager.PERMISSION_GRANTED) {
-            mPermissionStrings.add(Manifest.permission.RECORD_AUDIO);
-            mRequest = true;
-        }
-        if (mRequest == true) {
-            String[] mPermissionList = new String[mPermissionStrings.size()];
-            mPermissionList = mPermissionStrings.toArray(mPermissionList);
-            requestPermissions(mPermissionList, PERMISSION_REQUEST_POWER_ON);
+        if (FmAudio.REQUIRES_RECORD_AUDIO_PERMISSION
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                        != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {Manifest.permission.RECORD_AUDIO},
+                    PERMISSION_REQUEST_POWER_ON);
             return;
         }
         mService.setRecordingPermission(true);

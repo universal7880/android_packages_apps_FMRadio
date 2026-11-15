@@ -29,13 +29,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.hardware.display.DisplayManagerGlobal;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.view.Display;
-import android.view.DisplayInfo;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -673,60 +670,6 @@ public class FmScroller extends FrameLayout {
         return position - mLastEventPosition[vertical];
     }
 
-    /**
-     * Interpolator that enforces a specific starting velocity.
-     * This is useful to avoid a discontinuity between dragging
-     * speed and flinging speed. Similar to a
-     * {@link android.view.animation.AccelerateInterpolator} in
-     * the sense that getInterpolation() is a quadratic function.
-     */
-    private static class AcceleratingFlingInterpolator implements Interpolator {
-
-        private final float mStartingSpeedPixelsPerFrame;
-
-        private final float mDurationMs;
-
-        private final int mPixelsDelta;
-
-        private final float mNumberFrames;
-
-        public AcceleratingFlingInterpolator(int durationMs, float startingSpeedPixelsPerSecond,
-                int pixelsDelta) {
-            mStartingSpeedPixelsPerFrame = startingSpeedPixelsPerSecond / getRefreshRate();
-            mDurationMs = durationMs;
-            mPixelsDelta = pixelsDelta;
-            mNumberFrames = mDurationMs / getFrameIntervalMs();
-        }
-
-        @Override
-        public float getInterpolation(float input) {
-            final float animationIntervalNumber = mNumberFrames * input;
-            final float linearDelta = (animationIntervalNumber * mStartingSpeedPixelsPerFrame)
-                    / mPixelsDelta;
-            // Add the results of a linear interpolator (with the initial speed)
-            // with the
-            // results of a AccelerateInterpolator.
-            if (mStartingSpeedPixelsPerFrame > 0) {
-                return Math.min(input * input + linearDelta, 1);
-            } else {
-                // Initial fling was in the wrong direction, make sure that the
-                // quadratic component
-                // grows faster in order to make up for this.
-                return Math.min(input * (input - linearDelta) + linearDelta, 1);
-            }
-        }
-
-        private float getRefreshRate() {
-            DisplayInfo di = DisplayManagerGlobal.getInstance().getDisplayInfo(
-                    Display.DEFAULT_DISPLAY);
-            return di.getMode().getRefreshRate();
-        }
-
-        public long getFrameIntervalMs() {
-            return (long) (1000 / getRefreshRate());
-        }
-    }
-
     private int getMaxHeight(int state) {
         int height = 0;
         switch (state) {
@@ -1128,8 +1071,8 @@ public class FmScroller extends FrameLayout {
             Resources res = mContext.getResources();
             mFirstTargetHeight = res.getDimensionPixelSize(R.dimen.fm_main_header_big);
             mSecondTargetHeight = res.getDimensionPixelSize(R.dimen.fm_main_header_small);
-            mStatusBarHeight = res
-                    .getDimensionPixelSize(com.android.internal.R.dimen.status_bar_height);
+            int statusBarHeight = res.getIdentifier("status_bar_height", "dimen", "android");
+            mStatusBarHeight = statusBarHeight != 0 ? res.getDimensionPixelSize(statusBarHeight) : 0;
             mFullHeight = mDisplayMetrics.heightPixels - mStatusBarHeight;
 
             mFrequencyText = (TextView) findViewById(R.id.station_value);
