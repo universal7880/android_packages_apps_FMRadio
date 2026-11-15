@@ -251,8 +251,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     private FmAudio mAudio;
     //private MediaPlayer mFmPlayer = null;
     private WakeLock mWakeLock = null;
-    // Audio focus is held or not
-    private boolean mIsAudioFocusHeld = false;
+    // The current session may render audio. The platform backend requires focus.
+    private boolean mCanPlayAudio = false;
     // Focus transient lost
     private boolean mPausedByTransientLossOfFocus = false;
     private int mCurrentStation = FmUtils.DEFAULT_STATION;
@@ -523,7 +523,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         if (!mWakeLock.isHeld()) {
             mWakeLock.acquire();
         }
-        if (!requestAudioFocus()) {
+        if (!prepareAudioPlayback()) {
             // activity used for update powerdown menu
             mPowerStatus = POWER_DOWN;
             return false;
@@ -960,10 +960,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      * resume FM audio
      */
     private void resumeFmAudio() {
-        // If not check mIsAudioFocusHeld && power up, when scan canceled,
-        // this will be resume first, then execute power down. it will cause
-        // nosise.
-        if (mIsAudioFocusHeld && (mPowerStatus == POWER_UP)) {
+        // A cancelled scan can finish while playback is being shut down.
+        if (canRenderAudio()) {
             enableFmAudio(true);
         }
     }
@@ -1258,7 +1256,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      * Exit FMRadio application
      */
     private void exitFm() {
-        mIsAudioFocusHeld = false;
+        mCanPlayAudio = false;
         // Stop FM recorder if it is working
         if (null != mFmRecorder) {
             synchronized (mStopRecordingLock) {
@@ -1457,7 +1455,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     }
 
     boolean canRenderAudio() {
-        return mPowerStatus == POWER_UP && mIsAudioFocusHeld;
+        return mPowerStatus == POWER_UP && mCanPlayAudio;
     }
 
     void onFmAudioEnded() {
@@ -1694,7 +1692,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     }
 
     private void focusChanged(int focusState) {
-        mIsAudioFocusHeld = false;
+        mCanPlayAudio = false;
         if (mIsNativeScanning || mIsNativeSeeking) {
             // make stop scan from activity call to service.
             // notifyActivityStateChanged(FMRadioListener.LISTEN_SCAN_CANCELED);
@@ -1706,31 +1704,35 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     }
 
     /**
-     * Request audio focus
-     *
-     * @return true, success; false, fail;
+     * Prepare playback, requesting audio focus when required by the backend.
      */
-    public boolean requestAudioFocus() {
+    private boolean prepareAudioPlayback() {
         if (FmUtils.getIsSpeakerModeOnFocusLost(mContext)) {
             setForceUse(true);
             FmUtils.setIsSpeakerModeOnFocusLost(mContext, false);
         }
-        if (mIsAudioFocusHeld) {
+        if (FmAudio.MIX_WITH_MEDIA) {
+            mCanPlayAudio = true;
+            return true;
+        }
+        if (mCanPlayAudio) {
             return true;
         }
 
         int audioFocus = mAudioManager.requestAudioFocus(mAudioFocusChangeListener,
                 AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-        mIsAudioFocusHeld = (AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioFocus);
-        return mIsAudioFocusHeld;
+        mCanPlayAudio = (AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioFocus);
+        return mCanPlayAudio;
     }
 
     /**
      * Abandon audio focus
      */
-    public void abandonAudioFocus() {
-        mAudioManager.abandonAudioFocus(mAudioFocusChangeListener);
-        mIsAudioFocusHeld = false;
+    private void abandonAudioFocus() {
+        if (!FmAudio.MIX_WITH_MEDIA) {
+            mAudioManager.abandonAudioFocus(mAudioFocusChangeListener);
+        }
+        mCanPlayAudio = false;
     }
 
     /**
@@ -2236,7 +2238,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                      * if there is stop command when scan, so it needs to mute
                      * fm avoid fm sound come out.
                      */
-                    if (mIsAudioFocusHeld) {
+                    if (mCanPlayAudio) {
                         setMute(false);
                     }
                     bundle = new Bundle(4);

@@ -16,6 +16,7 @@ import java.io.IOException;
 final class FmAudio {
     static final String STATION_AUTHORITY = "org.lineageos.fmradio.vendor";
     static final boolean REQUIRES_RECORD_AUDIO_PERMISSION = false;
+    static final boolean MIX_WITH_MEDIA = true;
     static final boolean RECORDING_SUPPORTED = false;
     private static final String TAG = "FmVendorAudio";
     private static final int SAMPLE_RATE = 48000;

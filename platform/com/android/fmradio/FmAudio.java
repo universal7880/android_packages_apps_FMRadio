@@ -37,6 +37,7 @@ import android.os.SystemProperties;
 final class FmAudio {
     static final String STATION_AUTHORITY = "com.android.fmradio";
     static final boolean REQUIRES_RECORD_AUDIO_PERMISSION = true;
+    static final boolean MIX_WITH_MEDIA = false;
     static final boolean RECORDING_SUPPORTED = true;
     private static final String TAG = "FmAudio";
     private static final int FOR_PROPRIETARY = 1;
